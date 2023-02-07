@@ -16,6 +16,10 @@ export async function appRoutes(app: FastifyInstance) {
 
     const today = dayjs().startOf('day').toDate();
 
+    if(!title || weekDays.length === 0) {
+      return Error("Você não preencheu o(s) campo(s) título ou dia.");
+    }
+    
     await prisma.habit.create({
       data: {
         title,
@@ -38,7 +42,7 @@ export async function appRoutes(app: FastifyInstance) {
 
     const { date } = getDayParams.parse(request.query);
 
-    const parseDate = dayjs(date).startOf('day');
+    const parseDate = dayjs(date);
     const weekDay = parseDate.get('day');
 
     const possibleHabits = await prisma.habit.findMany({
@@ -54,7 +58,7 @@ export async function appRoutes(app: FastifyInstance) {
       }
     });
 
-    const day = await prisma.day.findUnique({
+    const day = await prisma.day.findFirst({
       where: {
         date: parseDate.toDate(),
       },
@@ -78,20 +82,29 @@ export async function appRoutes(app: FastifyInstance) {
       id: z.string().uuid(),
     });
 
-    const { id } = toggleHabitParams.parse(request.params);
+    const getDayParams = z.object({
+      date: z.coerce.date()
+    });
 
-    const today = dayjs().startOf('day').toDate();
+    const { id } = toggleHabitParams.parse(request.params);
+    
+    const { date } = getDayParams.parse(request.query);
+
+    const parseDate = dayjs(date);
+
+    // const today = dayjs().startOf('day').toDate();
+    // console.log(parseDate)
 
     let day = await prisma.day.findUnique({
       where: {
-        date: today,
+        date: parseDate.toDate(),
       }
     });
 
     if (!day) {
       day = await prisma.day.create({
         data: {
-          date: today,
+          date: parseDate.toDate(),
         }
       });
     }
